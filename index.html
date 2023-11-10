@@ -1,0 +1,434 @@
+<html>
+
+<head>
+    <title>産総研 シームレス標高タイル（統合DEM）+色別標高図+気象庁震源データ</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src='https://unpkg.com/maplibre-gl@3.4.1/dist/maplibre-gl.js'></script>
+    <link href='https://unpkg.com/maplibre-gl@3.4.1/dist/maplibre-gl.css' rel='stylesheet' />
+    <script src="https://unpkg.com/pmtiles@2.10.0/dist/index.js"></script>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .map-overlay {
+            font: bold 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            position: absolute;
+            width: 200px;
+            bottom: 20px;
+            left: 0;
+            padding: 10px;
+        }
+
+        .map-overlay .map-overlay-inner {
+            background-color: #fff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .map-overlay label {
+            display: block;
+            margin: 0 0 0px;
+            font-size: 12px;
+            top: 100px;
+            left: 10px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .map-overlay input {
+            background-color: transparent;
+            display: inline-block;
+            width: 100%;
+            position: relative;
+            margin: 0;
+            cursor: ew-resize;
+        }
+
+        .maplibregl-popup .maplibregl-popup-content {
+            padding: 8px 10px;
+            font: 12px/14px Arial, Helvetica, sans-serif;
+            color: black;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.9);
+            border-radius: 5px;
+            width: 220px;
+            height: 140px;
+            /*overflow: scroll;*/
+        }
+
+        .maplibregl-popup .maplibregl-popup-content .shinouchimei-title {
+            color: red;
+            font-size: larger;
+        }
+
+        .maplibregl-popup .maplibregl-popup-content .quake-info th {
+            width: 80px;
+        }
+
+        /* 1列目 (左側) を右寄せにする */
+        .maplibregl-popup .maplibregl-popup-content .quake-info td:nth-child(1) {
+            text-align: right;
+            width: 80px;
+        }
+
+        /* 2列目 (右側) のセルの幅を広げる */
+        .maplibregl-popup .maplibregl-popup-content .quake-info td:nth-child(2) {
+            text-align: left;
+            width: 130px;
+            /* 必要に応じて適切な値に調整してください */
+            white-space: nowrap;
+            /* 折り返しを防ぐ */
+        }
+
+        .maplibregl-popup .maplibregl-popup-content .quake-info b {
+            text-align: right;
+        }
+
+        .maplibregl-popup .maplibregl-popup-content .quake-info,
+        .maplibregl-popup .maplibregl-popup-content .quake-info th,
+        .maplibregl-popup .maplibregl-popup-content .quake-info td {
+            font: 12px/14px Arial, Helvetica, sans-serif;
+        }
+
+        .legend {
+            background-color: #fff;
+            border-radius: 3px;
+            bottom: 260px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            padding: 10px;
+            position: absolute;
+            right: 5px;
+            z-index: 1;
+            line-height: 16px;
+            height: 240px;
+        }
+
+        .legend h4 {
+            margin: 0 0 10px;
+        }
+
+        .legend div span {
+            border-radius: 50%;
+            display: inline-block;
+            height: 15px;
+            margin-right: 10px;
+            width: 15px;
+            color: black;
+        }
+
+        .circle-depth {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .circle-container {
+            display: block;
+        }
+
+        .circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid red;
+            border-radius: 50%;
+            background-color: rgba(255, 0, 0, 0.2);
+        }
+
+        .circle.small {
+            width: 4px;
+            height: 4px;
+        }
+
+        .circle.medium {
+            width: 8px;
+            height: 8px;
+        }
+
+        .circle.large {
+            width: 16px;
+            height: 16px;
+        }
+
+        .circle-text {
+            font-size: 12px;
+            position: relative;
+            color: black;
+        }
+
+        .circle.large .circle-text {
+            font-size: 12px;
+        }
+
+        .legend-hanrei {
+            position: fixed;
+            right: 5px;
+            bottom: 50px;
+            z-index: 1;
+            width: auto;
+        }
+
+        .image-container {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .legend-hanrei img {
+            width: 60%;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <div id='legend' class='legend'>
+        <h4>震源の深さ</h4>
+        <div class="circle-depth" style='background-color: #FF0000;display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">20km未満</span><br>
+        <div class="circle-depth" style='background-color: #FF7F00;display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">40km未満</span><br>
+        <div class="circle-depth" style='background-color: #FFFF00;display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">80km未満</span><br>
+        <div class="circle-depth" style='background-color: #00FF00;display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">100km未満</span><br>
+        <div class="circle-depth" style='background-color: #00FFFF;display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">150km未満</span><br>
+        <div class="circle-depth" style='background-color: #0000FF;display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">300km未満</span><br>
+        <div class="circle-depth" style='background-color: #7F00FF;display: inline-block;'></div>
+        <span style="display: inline-block; margin-left: 5px;">300km以上</span><br><br>
+        <h4>マグニチュード</h4>
+        <div class="circle-container">
+            <div class="circle small"></div>
+            <span class="circle-text" style="display: inline-block; margin-left: 5px;">M3</span><br>
+            <div class="circle medium"></div>
+            <span class="circle-text" style="display: inline-block; margin-left: 5px;">M5</span><br>
+            <div class="circle large"></div>
+            <span class="circle-text" style="display: inline-block; margin-left: 5px;">M7</span><br>
+        </div>
+    </div>
+    <div class="legend-hanrei">
+        <div class="image-container">
+            <img src="Relief_hanrei.png" alt="Legend">
+        </div>
+    </div>
+    <div class="map-overlay top">
+        <div class="map-overlay-inner">
+            <label>地形の高さを強調する倍率: <span id="slider-opacity-value">7倍</span></label>
+            <input id="slider-opacity" type="range" min="0" max="10" step="1" value="7">
+        </div>
+    </div>
+    <script type="module">
+
+        // Terrain-RGB形式への変換モジュール
+        import { makeNumPngProtocol } from './numPngProtocol.js'
+
+        // protocolを設定
+        let protocol = new pmtiles.Protocol();
+        maplibregl.addProtocol("pmtiles", protocol.tile);
+
+        // マップの初期化
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: 'std.json',
+            zoom: 6.37,
+            minZoom: 1,
+            maxZoom: 23,
+            pitch: 69,
+            bearing: -22.4,
+            maxPitch: 85,
+            center: [141.323, 28.57],
+            hash: true,
+            attributionControl: false
+        });
+
+        // ズーム・回転
+        map.addControl(new maplibregl.NavigationControl());
+
+        // フルスクリーンモードのオンオフ
+        map.addControl(new maplibregl.FullscreenControl());
+
+        // 現在位置表示
+        map.addControl(new maplibregl.GeolocateControl({
+            positionOptions: {
+                enableHighAccuracy: false
+            },
+            fitBoundsOptions: { maxZoom: 18 },
+            trackUserLocation: true,
+            showUserLocation: true
+        }));
+
+        // スケール表示
+        map.addControl(new maplibregl.ScaleControl({
+            maxWidth: 200,
+            unit: 'metric'
+        }));
+
+        // Attributionを折りたたみ表示
+        map.addControl(new maplibregl.AttributionControl({
+            compact: true,
+            customAttribution: '（<a href="https://twitter.com/shi__works" target="_blank">Twitter</a> | <a href="" target="_blank">Github</a>） '
+        }));
+
+        /*
+        // 3D地形コントロール
+        map.addControl(
+            new maplibregl.TerrainControl({
+                source: 'aist-dem',
+                exaggeration: 7 // 標高を強調する倍率
+            })
+        );
+        */
+
+        map.on('load', () => {
+            // 産総研 シームレス標高タイルソース
+            map.addSource("aist-dem", {
+                type: 'raster-dem',
+                tiles: [
+                    'numpng://tiles.gsj.jp/tiles/elev/mixed/{z}/{y}/{x}.png',
+                ],
+                attribution: '<a href="https://tiles.gsj.jp/tiles/elev/tiles.html" target="_blank">産業技術総合研究所 シームレス標高タイル(統合DEM)</a>',
+                tileSize: 256
+            });
+
+            // 産総研 シームレス標高タイルセット
+            map.setTerrain({ 'source': 'aist-dem', 'exaggeration': 7 });
+
+            // スライダーでシームレス標高タイルの高さの倍率を制御
+            const sliderOpacity = document.getElementById('slider-opacity');
+            const sliderOpacityValue = document.getElementById('slider-opacity-value');
+
+            sliderOpacity.addEventListener('input', (e) => {
+                const exaggerationValue = parseFloat(e.target.value);
+                map.setTerrain({ 'source': 'aist-dem', 'exaggeration': exaggerationValue });
+                sliderOpacityValue.textContent = e.target.value + '倍';
+            });
+
+            // 気象庁 震源データソース
+            map.addSource("hypocenter", {
+                type: "vector",
+                // url: "pmtiles://" + "https://xs489works.xsrv.jp/pmtiles-data/jma-earthquake/hypocenter_convert.pmtiles",
+                url: "pmtiles://" + "https://xs489works.xsrv.jp/pmtiles-data/jma-earthquake/hypocenter_convert_add_name_z10.pmtiles",
+                // url: "pmtiles://" + "https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/jma-earthquake/hypocenter_convert_add_name_z10.pmtiles",
+                attribution: '<a href="https://www.data.jma.go.jp/svd/eqev/data/bulletin/shindo.html">気象庁 地震月報(カタログ編) 震源データを加工して作成</a>'
+            });
+
+            // 気象庁 震源データポイントレイヤ
+            map.addLayer({
+                'id': 'hypocenter-points',
+                'type': 'circle',
+                'source': 'hypocenter',
+                "source-layer": "hypocenter_convert_add_namefgb",
+                minzoom: 8,
+                maxzoom: 23,
+                'paint': {
+                    /*
+                    'circle-stroke-color': [
+                        "step",
+                        ["to-number", ["get", "深さ(km)"]],
+                        "#FF0000",  // 20km未満
+                        20, "#FF7F00",  // 40km未満
+                        40, "#FFFF00",  // 80km未満
+                        80, "#00FF00",  // 100km未満
+                        100, "#00FFFF",  // 150km未満
+                        150, "#0000FF",  // 300km未満
+                        300, "#7F00FF",  // 300km以上
+                    ],
+                    'circle-stroke-width': 1.5,
+                    // 'circle-color': "rgba(0 ,0 ,0 ,0)",
+                    */
+                    'circle-color': [
+                        "step",
+                        ["to-number", ["get", "深さ(km)"]],
+                        "rgba(255, 0, 0, 1)",         // 20km未満
+                        20, "rgba(255, 127, 0, 1)",   // 40km未満
+                        40, "rgba(255, 255, 0, 1)",   // 80km未満
+                        80, "rgba(0, 255, 0, 1)",     // 100km未満
+                        100, "rgba(0, 255, 255, 1)",  // 150km未満
+                        150, "rgba(0, 0, 255, 1)",    // 300km未満
+                        300, "rgba(127, 0, 255, 1)",  // 300km以上
+                    ],
+                    'circle-radius': [
+                        "interpolate",
+                        ["linear"],
+                        ["to-number", ["get", "マグニチュード1"]],
+                        1, 1,
+                        3, 2,
+                        4, 3,
+                        5, 4,
+                        6, 6,
+                        7, 8,
+                        8, 10,
+                        9, 12
+                    ]
+                }
+            });
+
+            map.showTileBoundaries = false;
+
+        })
+
+        // addProtocolを設定
+        maplibregl.addProtocol('numpng', makeNumPngProtocol());
+
+        // クリック時のポップアップ表示
+        map.on('click', 'hypocenter-points', (e) => {
+            var lng = e.lngLat.lng;
+            var lat = e.lngLat.lat;
+            var shinouchimei = e.features[0].properties['震央地名(漢字)'];
+            var id = e.features[0].properties['地震ID'].substring(0, 19);
+            var datetime = e.features[0].properties['DateTime'].substring(0, 19);
+            var depth = Math.round(parseFloat(e.features[0].properties['深さ(km)']));
+            var mag = e.features[0].properties['マグニチュード1'];
+            var maxshindo = e.features[0].properties['最大震度'];
+            new maplibregl.Popup()
+                .setLngLat(e.lngLat)
+                .setHTML(
+                    '<b class="shinouchimei-title">' + shinouchimei + '</b>' + '<br>' +
+                    '<table class="quake-info">' +
+                    '<tr>' +
+                    '<th></th>' +
+                    '<th></th>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>地震ID：</td>' +
+                    '<td><b>' + id + '</b></td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>発生日時：</td>' +
+                    '<td><b>' + datetime + '</b></td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>深さ：</td>' +
+                    '<td><b>' + depth + ' km' + '</b></td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>M：</td>' +
+                    '<td><b>' + mag + '</b></td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>最大震度：</td>' +
+                    '<td><b>震度' + maxshindo + '</b></td>' +
+                    '</tr>' +
+                    '</table>' +
+                    '<a href="https://www.data.jma.go.jp/svd/eqdb/data/shindo/index.html#' + id + '" target="_blank" class="jma-link">🔎気象庁 震度データベース検索</a>' + '<br>' +
+                    '<a href="https://www.google.com/maps?q=' + lat + "," + lng + "&hl=ja" + '" target="_blank" class="google-maps-link">🌎Google Maps</a>'
+                )
+                .addTo(map);
+        });
+
+    </script>
+</body>
+
+</html>
