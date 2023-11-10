@@ -225,8 +225,10 @@
     </div>
     <div class="map-overlay top">
         <div class="map-overlay-inner">
-            <label>地形の高さを強調する倍率: <span id="slider-opacity-value">7倍</span></label>
-            <input id="slider-opacity" type="range" min="0" max="10" step="1" value="7">
+            <label>地形の高さを強調する倍率: <span id="exaggeration-slider-opacity-value">7倍</span></label>
+            <input id="exaggeration-slider-opacity" type="range" min="0" max="10" step="1" value="7">
+            <label>震源データ 不透明度: <span id="hypocenter-slider-opacity-value">100%</span></label>
+            <input id="hypocenter-slider-opacity" type="range" min="0" max="100" step="1" value="100">
         </div>
     </div>
     <script type="module">
@@ -306,13 +308,13 @@
             map.setTerrain({ 'source': 'aist-dem', 'exaggeration': 7 });
 
             // スライダーでシームレス標高タイルの高さの倍率を制御
-            const sliderOpacity = document.getElementById('slider-opacity');
-            const sliderOpacityValue = document.getElementById('slider-opacity-value');
+            const exaggeration_sliderOpacity = document.getElementById('exaggeration-slider-opacity');
+            const exaggeration_sliderOpacityValue = document.getElementById('exaggeration-slider-opacity-value');
 
-            sliderOpacity.addEventListener('input', (e) => {
+            exaggeration_sliderOpacity.addEventListener('input', (e) => {
                 const exaggerationValue = parseFloat(e.target.value);
                 map.setTerrain({ 'source': 'aist-dem', 'exaggeration': exaggerationValue });
-                sliderOpacityValue.textContent = e.target.value + '倍';
+                exaggeration_sliderOpacityValue.textContent = e.target.value + '倍';
             });
 
             // 気象庁 震源データソース
@@ -329,7 +331,7 @@
                 'type': 'circle',
                 'source': 'hypocenter',
                 "source-layer": "hypocenter_convert_add_namefgb",
-                minzoom: 8,
+                minzoom: 6,
                 maxzoom: 23,
                 'paint': {
                     /*
@@ -372,6 +374,19 @@
                         9, 12
                     ]
                 }
+            });
+
+            // スライダーで震源データの不透明度を制御
+            const hypocenter_sliderOpactiy = document.getElementById('hypocenter-slider-opacity');
+            const hypocenter_sliderOpactiyValue = document.getElementById('hypocenter-slider-opacity-value');
+
+            hypocenter_sliderOpactiy.addEventListener('input', (e) => {
+                map.setPaintProperty(
+                    'hypocenter-points',
+                    'circle-opacity',
+                    parseInt(e.target.value, 10) / 100
+                );
+                hypocenter_sliderOpactiyValue.textContent = e.target.value + '%';
             });
 
             map.showTileBoundaries = false;
