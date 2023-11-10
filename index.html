@@ -331,7 +331,8 @@
                 'type': 'circle',
                 'source': 'hypocenter',
                 "source-layer": "hypocenter_convert_add_namefgb",
-                minzoom: 6,
+                // 'filter': ['>=', ['to-number', ['get', 'マグニチュード1']], 2.5],
+                minzoom: 8,
                 maxzoom: 23,
                 'paint': {
                     /*
@@ -372,7 +373,8 @@
                         7, 8,
                         8, 10,
                         9, 12
-                    ]
+                    ],
+                    'circle-opacity': 1
                 }
             });
 
