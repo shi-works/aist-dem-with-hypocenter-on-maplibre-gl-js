@@ -210,7 +210,6 @@
     <div id="filter">
         <label><b>filter</b></label><br>
         <select id="filter-selector">
-            <option value="2.5">Mag 2.5+</option>
             <option value="3.0">Mag 3.0+</option>
             <option value="4.0">Mag 4.0+</option>
             <option value="5.0">Mag 5.0+</option>
@@ -356,7 +355,7 @@
                 'type': 'circle',
                 'source': 'hypocenter',
                 "source-layer": "hypocenter_convert_add_namefgb",
-                'filter': ['>=', ['to-number', ['get', 'マグニチュード1']], 2.5],
+                'filter': ['>=', ['to-number', ['get', 'マグニチュード1']], 3.0],
                 minzoom: 7,
                 maxzoom: 23,
                 'paint': {
