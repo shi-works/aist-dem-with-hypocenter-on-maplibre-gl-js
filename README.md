@@ -4,10 +4,10 @@ https://shi-works.github.io/aist-dem-with-hypocenter-on-maplibre-gl-js/
 
 ## Hypocenter Data
 ### PMTiles
-https://xs489works.xsrv.jp/pmtiles-data/jma-earthquake/hypocenter_convert_add_name_Z4_z9.pmtiles
+https://xs489works.xsrv.jp/pmtiles-data/jma-earthquake/hypocenter_convert_add_name_Z4_z9.pmtiles,857MB
 
 ### GeoParquet
-https://xs489works.xsrv.jp/pmtiles-data/jma-earthquake/hypocenter_convert_add_name.parquet
+https://xs489works.xsrv.jp/pmtiles-data/jma-earthquake/hypocenter_convert_add_name.parquet,234MB
 
 ### Data Source
 https://www.data.jma.go.jp/eqev/data/bulletin/hypo.html
