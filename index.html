@@ -187,11 +187,37 @@
             width: 60%;
             height: auto;
         }
+
+        #filter {
+            padding: 3px 4px;
+            font: 12px/14px Arial, Helvetica, sans-serif;
+            color: black;
+            background: white;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            width: 80px;
+            top: 10px;
+            left: 10px;
+            position: absolute;
+            z-index: 1;
+        }
     </style>
 </head>
 
 <body>
     <div id="map"></div>
+    <div id="filter">
+        <label><b>filter</b></label><br>
+        <select id="filter-selector">
+            <option value="2.5">Mag 2.5+</option>
+            <option value="3.0">Mag 3.0+</option>
+            <option value="4.0">Mag 4.0+</option>
+            <option value="5.0">Mag 5.0+</option>
+            <option value="0.0">ALL</option>
+        </select>
+    </div>
+
     <div id='legend' class='legend'>
         <h4>震源の深さ</h4>
         <div class="circle-depth" style='background-color: #FF0000;display: inline-block;'></div>
@@ -320,9 +346,7 @@
             // 気象庁 震源データソース
             map.addSource("hypocenter", {
                 type: "vector",
-                // url: "pmtiles://" + "https://xs489works.xsrv.jp/pmtiles-data/jma-earthquake/hypocenter_convert.pmtiles",
-                // url: "pmtiles://" + "https://xs489works.xsrv.jp/pmtiles-data/jma-earthquake/hypocenter_convert_add_name_z10.pmtiles",
-                url: "pmtiles://" + "https://xs489works.xsrv.jp/pmtiles-data/jma-earthquake/hypocenter_convert_add_name_Z4_z9.pmtiles",
+                url: "pmtiles://" + "https://xs489works.xsrv.jp/pmtiles-data/jma-hypocenter/hypocenter_convert_add_name_Z4_z9.pmtiles",
                 attribution: '<a href="https://www.data.jma.go.jp/eqev/data/bulletin/hypo.html">気象庁 地震月報(カタログ編) 震源データを加工して作成</a>'
             });
 
@@ -332,25 +356,10 @@
                 'type': 'circle',
                 'source': 'hypocenter',
                 "source-layer": "hypocenter_convert_add_namefgb",
-                // 'filter': ['>=', ['to-number', ['get', 'マグニチュード1']], 2.5],
+                'filter': ['>=', ['to-number', ['get', 'マグニチュード1']], 2.5],
                 minzoom: 7,
                 maxzoom: 23,
                 'paint': {
-                    /*
-                    'circle-stroke-color': [
-                        "step",
-                        ["to-number", ["get", "深さ(km)"]],
-                        "#FF0000",  // 20km未満
-                        20, "#FF7F00",  // 40km未満
-                        40, "#FFFF00",  // 80km未満
-                        80, "#00FF00",  // 100km未満
-                        100, "#00FFFF",  // 150km未満
-                        150, "#0000FF",  // 300km未満
-                        300, "#7F00FF",  // 300km以上
-                    ],
-                    'circle-stroke-width': 1.5,
-                    // 'circle-color': "rgba(0 ,0 ,0 ,0)",
-                    */
                     'circle-color': [
                         "step",
                         ["to-number", ["get", "深さ(km)"]],
@@ -379,25 +388,42 @@
                 }
             });
 
-            // スライダーで震源データの不透明度を制御
-            const hypocenter_sliderOpactiy = document.getElementById('hypocenter-slider-opacity');
-            const hypocenter_sliderOpactiyValue = document.getElementById('hypocenter-slider-opacity-value');
-
-            hypocenter_sliderOpactiy.addEventListener('input', (e) => {
-                map.setPaintProperty(
-                    'hypocenter-points',
-                    'circle-opacity',
-                    parseInt(e.target.value, 10) / 100
-                );
-                hypocenter_sliderOpactiyValue.textContent = e.target.value + '%';
-            });
-
             map.showTileBoundaries = false;
 
         })
 
         // addProtocolを設定
         maplibregl.addProtocol('numpng', makeNumPngProtocol());
+
+        // スライダーで震源データの不透明度を制御
+        const hypocenter_sliderOpactiy = document.getElementById('hypocenter-slider-opacity');
+        const hypocenter_sliderOpactiyValue = document.getElementById('hypocenter-slider-opacity-value');
+
+        hypocenter_sliderOpactiy.addEventListener('input', (e) => {
+            map.setPaintProperty(
+                'hypocenter-points',
+                'circle-opacity',
+                parseInt(e.target.value, 10) / 100
+            );
+            hypocenter_sliderOpactiyValue.textContent = e.target.value + '%';
+        });
+
+        // スライダーで震源データのフィルタを制御
+        // フィルタセレクタの取得
+        const filterSelector = document.getElementById('filter-selector');
+
+        // フィルタセレクタの変更イベントのリスナーを追加
+        filterSelector.addEventListener('change', function () {
+            // 選択されたフィルタの値を取得し、数値に変換
+            const filterValue = parseFloat(filterSelector.value);
+
+            // マップレイヤーにフィルタを適用
+            if (filterValue === 0.0) {
+                map.setFilter('hypocenter-points', null); // すべてのデータを表示
+            } else {
+                map.setFilter('hypocenter-points', ['>=', ['to-number', ['get', 'マグニチュード1']], filterValue]);
+            }
+        });
 
         // クリック時のポップアップ表示
         map.on('click', 'hypocenter-points', (e) => {
