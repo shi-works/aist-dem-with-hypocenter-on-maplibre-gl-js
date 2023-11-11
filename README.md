@@ -8,7 +8,7 @@ https://xs489works.xsrv.jp/pmtiles-data/jma-hypocenter/hypocenter_convert_add_na
 https://xs489works.xsrv.jp/pmtiles-data/jma-hypocenter/hypocenter_convert_add_name_Z4_z9.pmtiles (857MB) ズームレベル4-9（精度20m）
 
 ### GeoParquet
-https://xs489works.xsrv.jp/pmtiles-data/jma-earthquake/hypocenter_convert_add_name.parquet (234MB)
+https://xs489works.xsrv.jp/pmtiles-data/jma-hypocenter/hypocenter_convert_add_name.parquet (234MB)
 
 ### Data Source
 https://www.data.jma.go.jp/eqev/data/bulletin/hypo.html
