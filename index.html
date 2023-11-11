@@ -387,42 +387,42 @@
                 }
             });
 
+            // スライダーで震源データの不透明度を制御
+            const hypocenter_sliderOpactiy = document.getElementById('hypocenter-slider-opacity');
+            const hypocenter_sliderOpactiyValue = document.getElementById('hypocenter-slider-opacity-value');
+
+            hypocenter_sliderOpactiy.addEventListener('input', (e) => {
+                map.setPaintProperty(
+                    'hypocenter-points',
+                    'circle-opacity',
+                    parseInt(e.target.value, 10) / 100
+                );
+                hypocenter_sliderOpactiyValue.textContent = e.target.value + '%';
+            });
+
+            // スライダーで震源データのフィルタを制御
+            // フィルタセレクタの取得
+            const filterSelector = document.getElementById('filter-selector');
+
+            // フィルタセレクタの変更イベントのリスナーを追加
+            filterSelector.addEventListener('change', function () {
+                // 選択されたフィルタの値を取得し、数値に変換
+                const filterValue = parseFloat(filterSelector.value);
+
+                // マップレイヤーにフィルタを適用
+                if (filterValue === 0.0) {
+                    map.setFilter('hypocenter-points', null); // すべてのデータを表示
+                } else {
+                    map.setFilter('hypocenter-points', ['>=', ['to-number', ['get', 'マグニチュード1']], filterValue]);
+                }
+            });
+
             map.showTileBoundaries = false;
 
         })
 
         // addProtocolを設定
         maplibregl.addProtocol('numpng', makeNumPngProtocol());
-
-        // スライダーで震源データの不透明度を制御
-        const hypocenter_sliderOpactiy = document.getElementById('hypocenter-slider-opacity');
-        const hypocenter_sliderOpactiyValue = document.getElementById('hypocenter-slider-opacity-value');
-
-        hypocenter_sliderOpactiy.addEventListener('input', (e) => {
-            map.setPaintProperty(
-                'hypocenter-points',
-                'circle-opacity',
-                parseInt(e.target.value, 10) / 100
-            );
-            hypocenter_sliderOpactiyValue.textContent = e.target.value + '%';
-        });
-
-        // スライダーで震源データのフィルタを制御
-        // フィルタセレクタの取得
-        const filterSelector = document.getElementById('filter-selector');
-
-        // フィルタセレクタの変更イベントのリスナーを追加
-        filterSelector.addEventListener('change', function () {
-            // 選択されたフィルタの値を取得し、数値に変換
-            const filterValue = parseFloat(filterSelector.value);
-
-            // マップレイヤーにフィルタを適用
-            if (filterValue === 0.0) {
-                map.setFilter('hypocenter-points', null); // すべてのデータを表示
-            } else {
-                map.setFilter('hypocenter-points', ['>=', ['to-number', ['get', 'マグニチュード1']], filterValue]);
-            }
-        });
 
         // クリック時のポップアップ表示
         map.on('click', 'hypocenter-points', (e) => {
